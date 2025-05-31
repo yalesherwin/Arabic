@@ -78,7 +78,9 @@
 
     async function fetchWordData() {
       const randomWord = sampleWords[Math.floor(Math.random() * sampleWords.length)];
-      const glosbeURL = `https://glosbe.com/gapi/translate?from=ar&dest=zh&q=${encodeURIComponent(randomWord)}&format=json&pretty=true`;
+      const proxy = "https://arabic-proxy.head-6c9.workers.dev";
+      const targetURL = `https://glosbe.com/gapi/translate?from=ar&dest=zh&q=${encodeURIComponent(randomWord)}&format=json&pretty=true`;
+      const glosbeURL = `${proxy}?url=${encodeURIComponent(targetURL)}`;
 
       try {
         const res = await fetch(glosbeURL);
