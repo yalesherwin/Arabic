@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>阿拉伯语学习小站</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: "Arial", sans-serif;
+      background: #f0f4f8;
+      color: #333;
+      text-align: center;
+      padding: 30px;
+    }
+    .card {
+      background: white;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      max-width: 550px;
+      margin: auto;
+    }
+    .word {
+      font-size: 2.2em;
+      color: #1a73e8;
+      margin-bottom: 10px;
+    }
+    .pronounce, .pinyin {
+      font-size: 1.2em;
+      color: #666;
+      margin: 6px 0;
+    }
+    .meaning {
+      font-weight: bold;
+      font-size: 1.2em;
+      margin-top: 12px;
+      color: #222;
+    }
+    .sentence {
+      font-style: italic;
+      margin: 18px 0 6px;
+      color: #444;
+    }
+    .sentence-ipa {
+      font-size: 1em;
+      color: #999;
+      margin-bottom: 12px;
+    }
+    button {
+      padding: 10px 20px;
+      border: none;
+      background: #1a73e8;
+      color: white;
+      border-radius: 8px;
+      font-size: 1em;
+      cursor: pointer;
+      margin: 10px 5px 0;
+    }
+    button:hover {
+      background: #135cb6;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="word" id="arabicWord">加载中...</div>
+    <div class="pronounce" id="ipa">音标：/…/</div>
+    <div class="pinyin" id="pinyin">拼音：…</div>
+    <div class="meaning" id="meaning">中文释义：…</div>
+    <div class="sentence" id="sentence">例句：…</div>
+    <div class="sentence-ipa" id="sentenceIpa">音标：/…/</div>
+    <button id="nextButton">下一条（随机词）</button>
+    <button id="playButton">🔊 播放发音</button>
+  </div>
+
+  <script>
+    const sampleWords = ["كتاب", "مدرسة", "بيت", "قلم", "ماء", "سيارة", "ولد", "بنت"];
+
+    async function fetchWordData() {
+      const randomWord = sampleWords[Math.floor(Math.random() * sampleWords.length)];
+      const glosbeURL = `https://glosbe.com/gapi/translate?from=ar&dest=zh&q=${encodeURIComponent(randomWord)}&format=json&pretty=true`;
+
+      try {
+        const res = await fetch(glosbeURL);
+        const json = await res.json();
+
+        const word = randomWord;
+        const meaning = json.tuc?.[0]?.phrase?.text || "未找到释义";
+        const example = json.examples?.[0]?.first || "暂无例句";
+
+        document.getElementById('arabicWord').textContent = word;
+        document.getElementById('ipa').textContent = "音标：/无/";
+        document.getElementById('pinyin').textContent = "拼音：待补充";
+        document.getElementById('meaning').textContent = "中文释义：" + meaning;
+        document.getElementById('sentence').textContent = "例句：" + example;
+        document.getElementById('sentenceIpa').textContent = "音标：/无/";
+
+        fetchForvoAudio(word);
+      } catch (err) {
+        alert("Glosbe 词库加载失败。");
+        console.error(err);
+      }
+    }
+
+    async function fetchForvoAudio(word) {
+      const forvoAPI = `https://apifree.forvo.com/key/YOUR_FORVO_API_KEY/format/json/action/word-pronunciations/word/${encodeURIComponent(word)}/language/ar`;
+
+      try {
+        const res = await fetch(forvoAPI);
+        const json = await res.json();
+        const audioUrl = json.items?.[0]?.pathmp3 || null;
+
+        if (audioUrl) {
+          document.getElementById("playButton").onclick = () => {
+            const audio = new Audio(audioUrl);
+            audio.play();
+          };
+        } else {
+          document.getElementById("playButton").onclick = () => alert("未找到发音");
+        }
+      } catch (err) {
+        console.error("Forvo 加载失败：", err);
+        document.getElementById("playButton").onclick = () => alert("发音获取失败");
+      }
+    }
+
+    document.getElementById("nextButton").addEventListener("click", fetchWordData);
+    window.onload = fetchWordData;
+  </script>
+</body>
+</html>
