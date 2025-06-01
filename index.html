@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>阿拉伯语 chinacnu 对话助手</title>
+  <title>阿拉伯语 文秀 学文 talking </title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -73,6 +73,7 @@
       responseDiv.innerText = "⏳ 正在生成中，请稍候...";
 
       try {
+        // 使用 flash 轻量模型后端
         const res = await fetch("https://arabic-proxy.head-6c9.workers.dev/?prompt=" + encodeURIComponent(promptText));
         const data = await res.json();
         const result = data?.candidates?.[0]?.content?.parts?.[0]?.text;
