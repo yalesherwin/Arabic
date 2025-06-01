@@ -3,94 +3,85 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>阿拉伯语词卡学习网站</title>
+  <title>阿拉伯语 Gemini 对话助手</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f0f4f8;
+      background: #eef3f7;
       margin: 0;
       padding: 2rem;
       text-align: center;
     }
-    .card {
-      background: white;
-      border-radius: 16px;
-      padding: 2rem;
+    .container {
       max-width: 600px;
       margin: auto;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      background: #fff;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     }
-    .word { font-size: 2.5rem; color: #1a73e8; margin-bottom: 0.5rem; }
-    .pinyin { font-size: 1.2rem; color: #444; }
-    .translation, .example {
+    textarea {
+      width: 100%;
+      height: 100px;
+      padding: 10px;
+      font-size: 1rem;
       margin-top: 1rem;
-      font-size: 1.1rem;
+      border-radius: 6px;
+      border: 1px solid #ccc;
     }
     button {
-      margin-top: 2rem;
-      padding: 0.75rem 2rem;
+      margin-top: 1rem;
+      padding: 0.6rem 1.5rem;
       font-size: 1rem;
-      border: none;
-      border-radius: 8px;
       background-color: #1a73e8;
       color: white;
+      border: none;
+      border-radius: 6px;
       cursor: pointer;
+    }
+    .response {
+      margin-top: 2rem;
+      text-align: left;
+      white-space: pre-wrap;
+      font-size: 1rem;
+      background: #f8f8f8;
+      padding: 1rem;
+      border-radius: 8px;
+      border: 1px solid #ddd;
     }
   </style>
 </head>
 <body>
-  <div class="card">
-    <div class="word" id="arabicWord">加载中...</div>
-    <div class="pinyin" id="pinyin">拼音加载中...</div>
-    <div class="translation" id="translations">翻译加载中...</div>
-    <div class="example" id="example">例句加载中...</div>
-    <audio id="audio" controls style="margin-top:1rem;"></audio>
-    <button onclick="loadNextCard()">下一条</button>
+  <div class="container">
+    <h2>与 Gemini 对话 · 阿拉伯语助手</h2>
+    <textarea id="prompt" placeholder="输入你想学习的内容或问题，如：请解释单词 لفائف"></textarea>
+    <br>
+    <button onclick="askGemini()">发送请求</button>
+    <div class="response" id="response">等待输入...</div>
   </div>
 
   <script>
-    const GEMINI_API_KEY = 'YOUR_GEMINI_API_KEY'; // 🔒 请将此放到中转服务中，前端勿暴露
+    async function askGemini() {
+      const promptText = document.getElementById("prompt").value.trim();
+      const responseDiv = document.getElementById("response");
 
-    async function fetchFromGemini(prompt) {
-      const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=" + GEMINI_API_KEY, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{ text: prompt }]
-          }]
-        })
-      });
-      const data = await response.json();
-      return data.candidates?.[0]?.content?.parts?.[0]?.text || "内容生成失败";
-    }
+      if (!promptText) {
+        responseDiv.innerText = "请输入问题内容。";
+        return;
+      }
 
-    async function loadNextCard() {
-      const wordList = ['لفائف', 'حديد', 'زنك', 'مجلفن', 'طلاء']; // 示例阿语词汇，可从远程加载
-      const randomWord = wordList[Math.floor(Math.random() * wordList.length)];
-
-      const prompt = `请用学习者视角帮我解释这个阿拉伯语词：${randomWord}，输出JSON结构，内容包括：\n1. 中文翻译\n2. 英文翻译\n3. 阿语拼音（拼音风格接近汉语）\n4. 阿语例句 + 中文翻译\n5. 通俗记忆口诀`;      
-
-      const result = await fetchFromGemini(prompt);
+      responseDiv.innerText = "⏳ 正在生成中，请稍候...";
 
       try {
-        const parsed = JSON.parse(result);
-        document.getElementById("arabicWord").innerText = randomWord;
-        document.getElementById("pinyin").innerText = parsed["阿语拼音"];
-        document.getElementById("translations").innerText = `中文: ${parsed["中文翻译"]} | 英文: ${parsed["英文翻译"]}`;
-        document.getElementById("example").innerText = `例句: ${parsed["阿语例句"]}\n${parsed["中文翻译例句"]}`;
-
-        const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(randomWord)}&tl=ar&client=tw-ob`;
-        document.getElementById("audio").src = audioUrl;
-
-      } catch (e) {
-        document.getElementById("arabicWord").innerText = "解析错误";
-        document.getElementById("translations").innerText = result;
-        console.error("解析失败：", e, result);
+        const res = await fetch("https://arabic-proxy.head-6c9.workers.dev/?prompt=" + encodeURIComponent(promptText));
+        const data = await res.json();
+        const result = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        responseDiv.innerText = result || "❌ 没有收到有效回复。";
+      } catch (err) {
+        responseDiv.innerText = "❌ 请求失败，请检查网络或服务状态。";
+        console.error(err);
       }
     }
-
-    window.onload = loadNextCard;
   </script>
 </body>
 </html>
