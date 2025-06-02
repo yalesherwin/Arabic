@@ -1,4 +1,3 @@
-<!-- index.html -->
 <!DOCTYPE html>
 <html lang="zh">
 <head>
@@ -6,69 +5,254 @@
   <title>阿拉伯语单词卡片</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
+    :root {
+      --primary-color: #1a73e8;
+      --secondary-color: #34a853;
+      --error-color: #d32f2f;
+      --text-color: #202124;
+      --light-gray: #f5f5f5;
+      --border-radius: 12px;
+      --box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    
     body {
-      font-family: Arial, sans-serif;
+      font-family: 'Segoe UI', Arial, sans-serif;
       background: #eef3f7;
       margin: 0;
       padding: 2rem;
       text-align: center;
+      color: var(--text-color);
     }
+    
     .container {
       max-width: 600px;
-      margin: auto;
+      margin: 2rem auto;
       background: #fff;
       padding: 2rem;
-      border-radius: 12px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      border-radius: var(--border-radius);
+      box-shadow: var(--box-shadow);
+      transition: all 0.3s ease;
     }
+    
+    h2 {
+      color: var(--primary-color);
+      margin-bottom: 1.5rem;
+    }
+    
     #wordCard {
-      font-size: 1.4rem;
-      color: #222;
-      margin: 1rem 0;
+      min-height: 180px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin: 1.5rem 0;
+      padding: 1.5rem;
+      background: var(--light-gray);
+      border-radius: var(--border-radius);
+      transition: all 0.3s ease;
     }
+    
+    .word-display {
+      font-size: 2.2rem;
+      font-weight: bold;
+      color: var(--primary-color);
+      margin-bottom: 1rem;
+      direction: rtl; /* 阿拉伯语从右向左显示 */
+    }
+    
+    .translation {
+      font-size: 1.1rem;
+      margin: 0.5rem 0;
+    }
+    
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(26, 115, 232, 0.3);
+      border-radius: 50%;
+      border-top-color: var(--primary-color);
+      animation: spin 1s ease-in-out infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
     button {
-      background: #1a73e8;
+      background: var(--primary-color);
       color: white;
       border: none;
-      padding: 0.6rem 1.5rem;
+      padding: 0.8rem 1.8rem;
       font-size: 1rem;
       border-radius: 6px;
       cursor: pointer;
+      transition: all 0.2s;
+      margin: 0.5rem;
     }
+    
+    button:hover {
+      background: #0d5bba;
+      transform: translateY(-2px);
+    }
+    
+    button:disabled {
+      background: #cccccc;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
     #error {
       margin-top: 1rem;
-      color: red;
+      color: var(--error-color);
+      min-height: 1.5rem;
+    }
+    
+    .stats {
+      margin-top: 1.5rem;
+      font-size: 0.9rem;
+      color: #666;
+    }
+    
+    .example {
+      font-size: 0.85rem;
+      color: #666;
+      margin-top: 1rem;
     }
   </style>
 </head>
 <body>
   <div class="container">
     <h2>阿拉伯语单词卡片</h2>
-    <div id="wordCard">点击“下一张”开始学习</div>
-    <button onclick="loadWord()">下一张</button>
+    
+    <div id="wordCard">
+      <div class="welcome-message">
+        <p>点击下方按钮开始学习阿拉伯语单词</p>
+        <div class="example">示例: <span class="word-display">بيت</span><br>
+          <span class="translation">中文: 房子</span><br>
+          <span class="translation">English: house</span>
+        </div>
+      </div>
+    </div>
+    
+    <button id="nextBtn" onclick="loadWord()">下一张</button>
+    <button id="speakBtn" onclick="speakWord()" disabled>朗读</button>
+    
     <div id="error"></div>
+    
+    <div class="stats">
+      <span id="wordCount">0</span> 个单词已学习
+    </div>
   </div>
-  <script>
-    async function loadWord() {
-      document.getElementById("error").innerText = "";
-      document.getElementById("wordCard").innerText = "加载中...";
-      try {
-        const res = await fetch("https://arabic-proxy.head-6c9.workers.dev/");
-        const data = await res.json();
 
-        if (data.error) {
-          document.getElementById("error").innerText = "❌ Gemini返回异常: " + (data.message || data.error);
-          document.getElementById("wordCard").innerText = "";
-        } else {
-          document.getElementById("wordCard").innerText = data.text || "无内容";
+  <script>
+    let currentWord = null;
+    let wordCounter = 0;
+    
+    async function loadWord() {
+      const wordCard = document.getElementById("wordCard");
+      const errorElement = document.getElementById("error");
+      const nextBtn = document.getElementById("nextBtn");
+      const speakBtn = document.getElementById("speakBtn");
+      const wordCount = document.getElementById("wordCount");
+      
+      // 重置状态
+      errorElement.innerHTML = "";
+      nextBtn.disabled = true;
+      speakBtn.disabled = true;
+      wordCard.innerHTML = `<div class="loading"></div><p>正在获取单词...</p>`;
+      
+      try {
+        const startTime = Date.now();
+        const res = await fetch("https://arabic-proxy.head-6c9.workers.dev/");
+        
+        if (!res.ok) {
+          throw new Error(`服务器返回错误: ${res.status}`);
         }
+        
+        const data = await res.json();
+        
+        if (data.error) {
+          throw new Error(data.error + (data.details ? `<br><small>${JSON.stringify(data.details)}</small>` : ""));
+        }
+        
+        // 解析返回的文本
+        const wordMatch = data.text.match(/word:\s*(.*?),/);
+        const zhMatch = data.text.match(/zh:\s*(.*?),/);
+        const enMatch = data.text.match(/en:\s*(.*)/);
+        
+        if (!wordMatch || !zhMatch || !enMatch) {
+          throw new Error("返回格式不正确，请重试");
+        }
+        
+        currentWord = {
+          arabic: wordMatch[1].trim(),
+          zh: zhMatch[1].trim(),
+          en: enMatch[1].trim()
+        };
+        
+        // 更新UI
+        wordCard.innerHTML = `
+          <div class="word-display">${currentWord.arabic}</div>
+          <div class="translation">中文: ${currentWord.zh}</div>
+          <div class="translation">English: ${currentWord.en}</div>
+        `;
+        
+        // 更新计数器
+        wordCounter++;
+        wordCount.textContent = wordCounter;
+        
+        // 启用朗读按钮
+        speakBtn.disabled = false;
+        
+        // 记录加载时间
+        const loadTime = (Date.now() - startTime) / 1000;
+        console.log(`单词加载时间: ${loadTime.toFixed(2)}秒`);
+        
       } catch (e) {
-        console.error(e);
-        document.getElementById("error").innerText = "❌ 获取失败：请检查网络或稍后再试。";
-        document.getElementById("wordCard").innerText = "";
+        console.error("加载错误:", e);
+        wordCard.innerHTML = `<p>加载失败</p>`;
+        errorElement.innerHTML = `❌ ${e.message}`;
+        
+        // 添加重试按钮
+        const retryBtn = document.createElement("button");
+        retryBtn.textContent = "重试";
+        retryBtn.onclick = loadWord;
+        errorElement.appendChild(document.createElement("br"));
+        errorElement.appendChild(retryBtn);
+        
+      } finally {
+        nextBtn.disabled = false;
       }
     }
+    
+    function speaWord() {
+      if (!currentWord) return;
+      
+      try {
+        const utterance = new SpeechSynthesisUtterance(currentWord.arabic);
+        utterance.lang = 'ar-SA'; // 阿拉伯语(沙特)
+        utterance.rate = 0.8;
+        
+        // 检查浏览器是否支持语音合成
+        if (!window.speechSynthesis) {
+          throw new Error("您的浏览器不支持语音朗读功能");
+        }
+        
+        window.speechSynthesis.speak(utterance);
+        
+      } catch (e) {
+        document.getElementById("error").textContent = `❌ 朗读失败: ${e.message}`;
+      }
+    }
+    
+    // 初始加载一个单词
+    window.addEventListener('DOMContentLoaded', () => {
+      // 检查语音合成支持
+      if (!window.speechSynthesis) {
+        document.getElementById("speakBtn").style.display = 'none';
+      }
+    });
   </script>
 </body>
 </html>
-
