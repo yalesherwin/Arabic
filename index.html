@@ -19,17 +19,17 @@
       margin: auto;
     }
     button {
-      margin-top: 1rem;
-      padding: 10px 20px;
+      margin-top: 1.5rem;
+      padding: 12px 24px;
       font-size: 1rem;
-      border: none;
-      background: #1a73e8;
+      background-color: #1a73e8;
       color: white;
+      border: none;
       border-radius: 8px;
       cursor: pointer;
     }
     button:hover {
-      background: #0c5bd3;
+      background-color: #155cc2;
     }
   </style>
 </head>
@@ -42,10 +42,15 @@
 
   <script>
     async function loadWord() {
+      const wordElement = document.getElementById("word");
+      wordElement.innerText = "加载中...";
+
       try {
         const response = await fetch("https://arabic-proxy.head-6c9.workers.dev/", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json"
+          },
           body: JSON.stringify({
             contents: [{
               parts: [{
@@ -55,23 +60,16 @@
           })
         });
 
-        const data = await response.json();
-        let rawText = data.candidates[0].content.parts[0].text;
+        // 因为 Worker 端已返回纯 JSON，直接解析
+        const parsed = await response.json();
 
-        // 清除 Markdown ```json 包裹
-        if (rawText.includes("```")) {
-          rawText = rawText.replace(/```json\s*([\s\S]*?)\s*```/, '$1').trim();
-        }
-
-        const parsed = JSON.parse(rawText);
-
-        document.getElementById("word").innerHTML = `
+        wordElement.innerHTML = `
           <strong>阿语：</strong> ${parsed.arabic}<br/>
           <strong>中文：</strong> ${parsed.chinese}<br/>
           <strong>IPA：</strong> ${parsed.ipa}
         `;
       } catch (error) {
-        document.getElementById("word").innerText = "❌ 获取失败，请稍后重试。";
+        wordElement.innerText = "❌ 获取失败，请稍后重试。";
         console.error("加载错误:", error);
       }
     }
