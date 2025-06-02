@@ -4,9 +4,33 @@
   <meta charset="UTF-8">
   <title>阿拉伯语卡片学习</title>
   <style>
-    body { font-family: sans-serif; text-align: center; background: #f0f4f8; padding: 2rem; }
-    .card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); max-width: 500px; margin: auto; }
-    button { margin-top: 1rem; padding: 10px 20px; font-size: 1rem; }
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      background: #f0f4f8;
+      padding: 2rem;
+    }
+    .card {
+      background: white;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      max-width: 500px;
+      margin: auto;
+    }
+    button {
+      margin-top: 1rem;
+      padding: 10px 20px;
+      font-size: 1rem;
+      border: none;
+      background: #1a73e8;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0c5bd3;
+    }
   </style>
 </head>
 <body>
@@ -32,9 +56,14 @@
         });
 
         const data = await response.json();
-        const rawText = data.candidates[0].content.parts[0].text;
-        const cleanText = rawText.replace(/```json|```/g, '').trim();
-        const parsed = JSON.parse(cleanText);
+        let rawText = data.candidates[0].content.parts[0].text;
+
+        // 清除 Markdown ```json 包裹
+        if (rawText.includes("```")) {
+          rawText = rawText.replace(/```json\s*([\s\S]*?)\s*```/, '$1').trim();
+        }
+
+        const parsed = JSON.parse(rawText);
 
         document.getElementById("word").innerHTML = `
           <strong>阿语：</strong> ${parsed.arabic}<br/>
