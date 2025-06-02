@@ -60,13 +60,18 @@
           })
         });
 
-        // 因为 Worker 端已返回纯 JSON，直接解析
         const parsed = await response.json();
 
+        // 尝试解析 Gemini 格式的结构
+        const rawText = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!rawText) throw new Error("返回格式错误");
+
+        const data = JSON.parse(rawText);
+
         wordElement.innerHTML = `
-          <strong>阿语：</strong> ${parsed.arabic}<br/>
-          <strong>中文：</strong> ${parsed.chinese}<br/>
-          <strong>IPA：</strong> ${parsed.ipa}
+          <strong>阿语：</strong> ${data.arabic}<br/>
+          <strong>中文：</strong> ${data.chinese}<br/>
+          <strong>IPA：</strong> ${data.ipa}
         `;
       } catch (error) {
         wordElement.innerText = "❌ 获取失败，请稍后重试。";
