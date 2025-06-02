@@ -18,29 +18,34 @@
 
   <script>
     async function loadWord() {
-      const response = await fetch("https://arabic-proxy.head-6c9.workers.dev/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: "给我一个阿拉伯语单词卡片，包含：阿拉伯语、中文意思、IPA 国际音标。不能重复。用JSON格式返回，例如：{\"arabic\":\"سلام\",\"chinese\":\"你好\",\"ipa\":\"saˈlaːm\"}"
+      try {
+        const response = await fetch("https://arabic-proxy.head-6c9.workers.dev/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{
+                text: "给我一个阿拉伯语单词卡片，包含：阿拉伯语单词、中文翻译、IPA 国际音标。不要解释说明，只返回 JSON 格式，例如：{\"arabic\":\"سلام\",\"chinese\":\"你好\",\"ipa\":\"saˈlaːm\"}"
+              }]
             }]
-          }]
-        })
-      });
+          })
+        });
 
-      const data = await response.json();
-      const text = data.candidates[0].content.parts[0].text;
-      const parsed = JSON.parse(text);
+        const data = await response.json();
+        const rawText = data.candidates[0].content.parts[0].text;
+        const cleanText = rawText.replace(/```json|```/g, '').trim();
+        const parsed = JSON.parse(cleanText);
 
-      document.getElementById("word").innerHTML = `
-        <strong>阿语：</strong> ${parsed.arabic}<br/>
-        <strong>中文：</strong> ${parsed.chinese}<br/>
-        <strong>IPA：</strong> ${parsed.ipa}
-      `;
+        document.getElementById("word").innerHTML = `
+          <strong>阿语：</strong> ${parsed.arabic}<br/>
+          <strong>中文：</strong> ${parsed.chinese}<br/>
+          <strong>IPA：</strong> ${parsed.ipa}
+        `;
+      } catch (error) {
+        document.getElementById("word").innerText = "❌ 获取失败，请稍后重试。";
+        console.error("加载错误:", error);
+      }
     }
   </script>
 </body>
 </html>
-
