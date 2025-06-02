@@ -53,7 +53,7 @@
       wordElement.innerText = "⏳ 正在加载，请稍候...";
 
       try {
-        const response = await fetch("https://你的-worker域名.workers.dev/", {
+        const response = await fetch("https://arabic-proxy.head-6c9.workers.dev/", {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
@@ -74,7 +74,6 @@
           throw new Error("API 返回内容为空或格式不正确");
         }
 
-        // 清理 markdown ```json 包裹格式
         if (rawText.includes("```")) {
           const match = rawText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
           if (match && match[1]) {
