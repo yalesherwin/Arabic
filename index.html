@@ -121,6 +121,7 @@
     function renderWordCard(wordData) {
       wordCard.innerHTML = `
         <div class="word-display">${wordData.word}</div>
+        <div class="translation">IPA: <span style="font-family:serif;font-size:1.1em">${wordData.ipa||''}</span></div>
         <div class="translation">中文: ${wordData.zh}</div>
         <div class="translation">English: ${wordData.en}</div>
       `;
