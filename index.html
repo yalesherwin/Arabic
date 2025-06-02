@@ -2,87 +2,45 @@
 <html lang="zh">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>阿拉伯语 文秀 学文 talking </title>
+  <title>阿拉伯语卡片学习</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #eef3f7;
-      margin: 0;
-      padding: 2rem;
-      text-align: center;
-    }
-    .container {
-      max-width: 600px;
-      margin: auto;
-      background: #fff;
-      padding: 2rem;
-      border-radius: 12px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    }
-    textarea {
-      width: 100%;
-      height: 100px;
-      padding: 10px;
-      font-size: 1rem;
-      margin-top: 1rem;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-    }
-    button {
-      margin-top: 1rem;
-      padding: 0.6rem 1.5rem;
-      font-size: 1rem;
-      background-color: #1a73e8;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-    .response {
-      margin-top: 2rem;
-      text-align: left;
-      white-space: pre-wrap;
-      font-size: 1rem;
-      background: #f8f8f8;
-      padding: 1rem;
-      border-radius: 8px;
-      border: 1px solid #ddd;
-    }
+    body { font-family: sans-serif; text-align: center; background: #f0f4f8; padding: 2rem; }
+    .card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); max-width: 500px; margin: auto; }
+    button { margin-top: 1rem; padding: 10px 20px; font-size: 1rem; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h2>与 chinancu steel 对话 · 自动询价机器人</h2>
-    <textarea id="prompt" placeholder="输入你想学习的内容或问题，如：请解释单词 لفائف"></textarea>
-    <br>
-    <button onclick="askGemini()">发送请求</button>
-    <div class="response" id="response">等待输入...</div>
+  <div class="card" id="card">
+    <h2>阿拉伯语单词</h2>
+    <p id="word">点击下面按钮开始学习</p>
   </div>
+  <button onclick="loadWord()">下一张</button>
 
   <script>
-    async function askGemini() {
-      const promptText = document.getElementById("prompt").value.trim();
-      const responseDiv = document.getElementById("response");
+    async function loadWord() {
+      const response = await fetch("https://arabic-proxy.head-6c9.workers.dev/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: "给我一个阿拉伯语单词卡片，包含：阿拉伯语、中文意思、IPA 国际音标。不能重复。用JSON格式返回，例如：{\"arabic\":\"سلام\",\"chinese\":\"你好\",\"ipa\":\"saˈlaːm\"}"
+            }]
+          }]
+        })
+      });
 
-      if (!promptText) {
-        responseDiv.innerText = "请输入问题内容。";
-        return;
-      }
+      const data = await response.json();
+      const text = data.candidates[0].content.parts[0].text;
+      const parsed = JSON.parse(text);
 
-      responseDiv.innerText = "⏳ 正在生成中，请稍候...";
-
-      try {
-        // 使用 flash 轻量模型后端
-        const res = await fetch("https://arabic-proxy.head-6c9.workers.dev/?prompt=" + encodeURIComponent(promptText));
-        const data = await res.json();
-        const result = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-        responseDiv.innerText = result || "❌ 没有收到有效回复。";
-      } catch (err) {
-        responseDiv.innerText = "❌ 请求失败，请检查网络或服务状态。";
-        console.error(err);
-      }
+      document.getElementById("word").innerHTML = `
+        <strong>阿语：</strong> ${parsed.arabic}<br/>
+        <strong>中文：</strong> ${parsed.chinese}<br/>
+        <strong>IPA：</strong> ${parsed.ipa}
+      `;
     }
   </script>
 </body>
 </html>
+
