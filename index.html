@@ -55,7 +55,13 @@
       try {
         const res = await fetch("https://arabic-proxy.head-6c9.workers.dev/");
         const data = await res.json();
-        document.getElementById("wordCard").innerText = data.text || "无内容";
+
+        if (data.error) {
+          document.getElementById("error").innerText = "❌ Gemini返回异常: " + (data.message || data.error);
+          document.getElementById("wordCard").innerText = "";
+        } else {
+          document.getElementById("wordCard").innerText = data.text || "无内容";
+        }
       } catch (e) {
         console.error(e);
         document.getElementById("error").innerText = "❌ 获取失败：请检查网络或稍后再试。";
