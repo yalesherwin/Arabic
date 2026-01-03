@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>测试页面 - 阿拉伯语学习</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 10px;
+      margin: 10px 0;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .success { color: #28a745; }
+    .error { color: #dc3545; }
+    .info { color: #007bff; }
+    button {
+      background: #2541b2;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    button:hover { background: #1a2f8a; }
+    pre {
+      background: #f8f9fa;
+      padding: 10px;
+      border-radius: 5px;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔍 系统测试</h1>
+
+  <div class="card">
+    <h2>1. 基础环境检测</h2>
+    <p id="env-test" class="info">检测中...</p>
+  </div>
+
+  <div class="card">
+    <h2>2. 词库加载测试</h2>
+    <button onclick="testVocabulary()">测试加载词库</button>
+    <p id="vocab-test"></p>
+    <pre id="vocab-preview"></pre>
+  </div>
+
+  <div class="card">
+    <h2>3. 本地存储测试</h2>
+    <button onclick="testStorage()">测试本地存储</button>
+    <p id="storage-test"></p>
+  </div>
+
+  <div class="card">
+    <h2>4. 跳转到主页面</h2>
+    <button onclick="window.location.href='index.html?t=' + Date.now()">打开学习页面</button>
+  </div>
+
+  <script>
+    // 基础环境检测
+    window.addEventListener('DOMContentLoaded', () => {
+      const envTest = document.getElementById('env-test');
+      const tests = [
+        `浏览器: ${navigator.userAgent.split(' ').pop()}`,
+        `支持localStorage: ${typeof localStorage !== 'undefined' ? '✅' : '❌'}`,
+        `支持fetch: ${typeof fetch !== 'undefined' ? '✅' : '❌'}`,
+        `支持语音合成: ${typeof speechSynthesis !== 'undefined' ? '✅' : '❌'}`
+      ];
+      envTest.innerHTML = tests.join('<br>');
+      envTest.className = 'success';
+    });
+
+    // 测试词库加载
+    async function testVocabulary() {
+      const testResult = document.getElementById('vocab-test');
+      const preview = document.getElementById('vocab-preview');
+
+      try {
+        testResult.innerHTML = '<span class="info">正在加载词库...</span>';
+
+        const response = await fetch('vocabulary.json');
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        const vocabCount = data.vocabulary ? data.vocabulary.length : 0;
+
+        testResult.innerHTML = `<span class="success">✅ 成功加载词库！共 ${vocabCount} 个单词</span>`;
+
+        // 显示前3个单词
+        if (data.vocabulary && data.vocabulary.length > 0) {
+          const preview3 = data.vocabulary.slice(0, 3);
+          preview.textContent = JSON.stringify(preview3, null, 2);
+        }
+      } catch (error) {
+        testResult.innerHTML = `<span class="error">❌ 加载失败: ${error.message}</span>`;
+        preview.textContent = '';
+      }
+    }
+
+    // 测试本地存储
+    function testStorage() {
+      const testResult = document.getElementById('storage-test');
+
+      try {
+        const testKey = 'test_key_' + Date.now();
+        const testValue = 'test_value';
+
+        localStorage.setItem(testKey, testValue);
+        const retrieved = localStorage.getItem(testKey);
+        localStorage.removeItem(testKey);
+
+        if (retrieved === testValue) {
+          testResult.innerHTML = '<span class="success">✅ 本地存储正常工作</span>';
+        } else {
+          throw new Error('读取的值不匹配');
+        }
+      } catch (error) {
+        testResult.innerHTML = `<span class="error">❌ 本地存储失败: ${error.message}</span>`;
+      }
+    }
+  </script>
+</body>
+</html>
