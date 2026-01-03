@@ -261,8 +261,9 @@
     </div>
   </div>
   <script>
-    // 云端API配置
-    const API_URL = "https://arabic-proxy.head-6c9.workers.dev/";
+    // 本地词库配置（自动加载，不依赖云端API）
+    let vocabulary = [];
+    let availableWords = [];
     let totalWords = 0;
 
     // 自动记忆：用 localStorage 记录已出现单词
@@ -292,8 +293,48 @@
     const wordCountElement = document.getElementById("wordCount");
     const nextBtnText = document.getElementById("nextBtnText");
 
+    // 加载本地词库
+    async function loadVocabulary() {
+      try {
+        const response = await fetch('vocabulary.json');
+        if (!response.ok) {
+          throw new Error('无法加载词库文件');
+        }
+        const data = await response.json();
+        vocabulary = data.vocabulary || [];
+        totalWords = vocabulary.length;
+        updateAvailableWords();
+        return true;
+      } catch (error) {
+        console.error('词库加载失败:', error);
+        showError('词库加载失败: ' + error.message + '。请确保 vocabulary.json 文件存在。');
+        return false;
+      }
+    }
+
+    // 更新可用单词列表（排除已学习的）
+    function updateAvailableWords() {
+      availableWords = vocabulary.filter(word => !shownWords.includes(word.word));
+    }
+
+    // 随机获取一个未学习的单词
+    function getRandomWord() {
+      if (availableWords.length === 0) {
+        return null;
+      }
+      const randomIndex = Math.floor(Math.random() * availableWords.length);
+      return availableWords[randomIndex];
+    }
+
     async function loadWord(attempt = 1) {
       if (isLoading) return;
+
+      // 确保词库已加载
+      if (vocabulary.length === 0) {
+        const loaded = await loadVocabulary();
+        if (!loaded) return;
+      }
+
       isLoading = true;
       nextBtn.disabled = true;
       nextBtnText.innerHTML = `<span class="loading"></span> 加载中`;
@@ -302,68 +343,31 @@
       wordCard.innerHTML = `
         <div style="text-align: center;">
           <div class="loading" style="margin: 0 auto;"></div>
-          <p style="color:#68708c;">正在从云端获取单词...</p>
+          <p style="color:#68708c;">正在获取单词...</p>
         </div>
       `;
 
       try {
-        // POST请求到云端API，传递已学习的单词列表
-        const response = await fetch(API_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ shownWords })
-        });
+        // 从本地词库随机选择一个未学习的单词
+        const wordData = getRandomWord();
 
-        if (!response.ok) {
-          throw new Error(`请求失败: ${response.status} ${response.statusText}`);
-        }
-
-        const data = await response.json();
-
-        // 检查是否有错误（比如词库学完）
-        if (data.error) {
-          if (data.error.includes('全部学习完成')) {
-            showError(`🎉 恭喜！您已学完所有 ${data.totalWords || shownWords.length} 个单词！`);
-          } else {
-            showError(data.error);
-          }
+        if (!wordData) {
+          // 所有单词都学完了
+          showError(`🎉 恭喜！您已学完所有 ${totalWords} 个单词！`);
           isLoading = false;
           nextBtn.disabled = false;
           nextBtnText.textContent = "下一张";
           return;
         }
 
-        if (!data.word) {
-          throw new Error("API返回格式有误");
-        }
-
-        // 前端本地再次去重检查（双重保险）
-        if (shownWords.includes(data.word)) {
-          if (attempt < 5) {
-            // 再请求一次（最多尝试5次）
-            await loadWord(attempt + 1);
-            return;
-          } else {
-            showError("抱歉，暂时没有新单词可显示！请稍后重试。");
-            isLoading = false;
-            nextBtn.disabled = false;
-            nextBtnText.textContent = "下一张";
-            return;
-          }
-        }
-
-        // 保存meta信息
-        if (data.meta && data.meta.totalWords) {
-          totalWords = data.meta.totalWords;
-        }
-
         // 新词，保存进本地历史
-        shownWords.push(data.word);
+        shownWords.push(wordData.word);
         saveHistory(shownWords);
+        updateAvailableWords();
 
-        renderWordCard(data);
-        currentWord = data.word;
-        currentWordData = data;
+        renderWordCard(wordData);
+        currentWord = wordData.word;
+        currentWordData = wordData;
         wordCounter = shownWords.length;
         updateStats();
         speakBtn.disabled = false;
@@ -391,11 +395,11 @@
 
     function updateStats() {
       const learned = shownWords.length;
-      const total = totalWords || '?';
-      const remaining = totalWords ? (totalWords - learned) : '?';
-      const percentage = totalWords > 0 ? Math.round((learned / totalWords) * 100) : 0;
+      const total = totalWords;
+      const remaining = total - learned;
+      const percentage = total > 0 ? Math.round((learned / total) * 100) : 0;
 
-      if (totalWords > 0) {
+      if (total > 0) {
         wordCountElement.innerHTML = `
           <span style="color:#2541b2;font-weight:700;font-size:1.1em">${learned}</span> / ${total} 个单词
           <span style="margin-left:8px;color:#68708c;">(${percentage}%)</span>
@@ -430,7 +434,7 @@
       resetHistory();
       shownWords = [];
       wordCounter = 0;
-      totalWords = 0;
+      updateAvailableWords();
       updateStats();
       hideError();
       wordCard.innerHTML = `
@@ -461,8 +465,11 @@
     }
 
     // 初始化
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
       if (!window.speechSynthesis) speakBtn.style.display = 'none';
+
+      // 预加载词库
+      await loadVocabulary();
       updateStats();
     });
   </script>
